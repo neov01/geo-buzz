@@ -1,23 +1,27 @@
 import React, { useState, useMemo } from 'react';
-import { Filter, Grid, Map, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Filter, Grid, Map, Sparkles, LogIn, LogOut, User } from 'lucide-react';
 import { Header } from '../components/Header';
 import { PlaceCard, Place } from '../components/PlaceCard';
 import { AddPlaceForm } from '../components/AddPlaceForm';
 import { MapView } from '../components/MapView';
 import { Button } from '../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { mockPlaces } from '../data/mockPlaces';
+import { useAuth } from '../hooks/useAuth';
+import { usePlaces } from '../hooks/usePlaces';
 import { useToast } from '../hooks/use-toast';
 import heroImage from '../assets/hero-bg.jpg';
 
 const Index = () => {
-  const [places, setPlaces] = useState<Place[]>(mockPlaces);
   const [showAddForm, setShowAddForm] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('tous');
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, signOut, loading: authLoading } = useAuth();
+  const { places, loading: placesLoading, addPlace, toggleLike, reportPlace } = usePlaces(user?.id);
 
   // Filtrage et recherche
   const filteredPlaces = useMemo(() => {
@@ -35,25 +39,24 @@ const Index = () => {
 
   const placeTypes = ['tous', ...Array.from(new Set(places.map(p => p.type)))];
 
-  const handleAddPlace = (newPlace: any) => {
-    setPlaces(prev => [newPlace, ...prev]);
-    setShowAddForm(false);
-    toast({
-      title: "🎉 Lieu ajouté !",
-      description: "Votre lieu a été partagé avec la communauté.",
-    });
+  const handleAddPlace = async (newPlace: any) => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+    
+    const success = await addPlace(newPlace);
+    if (success) {
+      setShowAddForm(false);
+    }
   };
 
   const handleLike = (id: string) => {
-    setPlaces(prev => prev.map(place => 
-      place.id === id 
-        ? { 
-            ...place, 
-            isLiked: !place.isLiked,
-            likes: place.isLiked ? place.likes - 1 : place.likes + 1
-          }
-        : place
-    ));
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+    toggleLike(id);
   };
 
   const handleComment = (id: string) => {
@@ -64,16 +67,47 @@ const Index = () => {
   };
 
   const handleReport = (id: string) => {
-    toast({
-      title: "🚨 Signalement envoyé",
-      description: "Merci de nous aider à maintenir la qualité de la communauté.",
-    });
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return;
+    }
+    reportPlace(id);
   };
 
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (!error) {
+      toast({
+        title: "Déconnexion réussie",
+        description: "À bientôt sur PlaceShare !",
+      });
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Sparkles className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (showAddForm) {
+    if (!isAuthenticated) {
+      navigate('/auth');
+      return null;
+    }
+    
     return (
       <div className="min-h-screen bg-background">
-        <Header onAddPlace={() => setShowAddForm(false)} />
+        <Header 
+          onAddPlace={() => setShowAddForm(false)}
+          onSearch={setSearchQuery}
+          searchQuery={searchQuery}
+        />
         <div className="max-w-7xl mx-auto px-4 py-8">
           <AddPlaceForm
             onSubmit={handleAddPlace}
@@ -110,21 +144,33 @@ const Index = () => {
               <p className="text-xl text-white/90 mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                 Partagez vos endroits favoris et découvrez les recommandations de la communauté
               </p>
-              <div className="flex gap-4 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-                <Button
-                  onClick={() => setShowAddForm(true)}
-                  className="btn-instagram text-lg px-8 py-4"
-                >
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Partager un lieu
-                </Button>
-                <Button
-                  variant="outline"
-                  className="text-white border-white/30 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-lg px-8 py-4"
-                  onClick={() => document.getElementById('places-section')?.scrollIntoView({ behavior: 'smooth' })}
-                >
-                  Explorer
-                </Button>
+              <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+                <div className="flex gap-4">
+                  <Button
+                    onClick={() => setShowAddForm(true)}
+                    className="btn-instagram text-lg px-8 py-4"
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Partager un lieu
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="text-white border-white/30 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-lg px-8 py-4"
+                    onClick={() => document.getElementById('places-section')?.scrollIntoView({ behavior: 'smooth' })}
+                  >
+                    Explorer
+                  </Button>
+                </div>
+                {!isAuthenticated && (
+                  <Button
+                    variant="outline"
+                    className="text-white border-white/30 bg-white/10 backdrop-blur-sm hover:bg-white/20 px-6 py-2"
+                    onClick={() => navigate('/auth')}
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Se connecter
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -185,7 +231,12 @@ const Index = () => {
         </div>
 
         {/* Contenu principal */}
-        {viewMode === 'map' ? (
+        {placesLoading ? (
+          <div className="text-center py-16">
+            <Sparkles className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Chargement des lieux...</p>
+          </div>
+        ) : viewMode === 'map' ? (
           <MapView 
             places={filteredPlaces}
             onPlaceSelect={setSelectedPlace}

@@ -1,7 +1,10 @@
 import React from 'react';
-import { MapPin, Plus, Search, Menu, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MapPin, Plus, Search, Menu, User, LogIn, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from './ui/use-toast';
 
 interface HeaderProps {
   onAddPlace?: () => void;
@@ -14,6 +17,19 @@ export const Header: React.FC<HeaderProps> = ({
   onSearch,
   searchQuery = ""
 }) => {
+  const navigate = useNavigate();
+  const { user, isAuthenticated, signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (!error) {
+      toast({
+        title: "Déconnexion réussie",
+        description: "À bientôt sur PlaceShare !",
+      });
+    }
+  };
   return (
     <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border/20 shadow-soft">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -76,13 +92,30 @@ export const Header: React.FC<HeaderProps> = ({
             </Button>
 
             {/* Menu utilisateur */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <User className="w-5 h-5" />
-            </Button>
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground hidden sm:block">
+                  Bonjour !
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSignOut}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <LogOut className="w-5 h-5" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/auth')}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <LogIn className="w-5 h-5" />
+              </Button>
+            )}
 
             {/* Menu mobile */}
             <Button
