@@ -3,7 +3,10 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
 export default defineConfig({
-  base: '/geo-buzz/',  // Assurez-vous que ceci correspond exactement au nom de votre dépôt
+  base: '/geo-buzz/',
+  server: {
+    port: 8080
+  },
   plugins: [react()],
   resolve: {
     alias: {
