@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { MapPin, Camera, Star, Tag, Type, MessageSquare } from 'lucide-react';
+import { MapPin, Star, Tag, Type, MessageSquare } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { InteractiveMap } from './InteractiveMap';
+import { PhotoUpload } from './PhotoUpload';
 
 const PLACE_TYPES = [
   'Restaurant',
@@ -36,10 +38,13 @@ export const AddPlaceForm: React.FC<AddPlaceFormProps> = ({
     description: '',
     rating: 0,
     tags: '',
-    image: ''
+    image: '',
+    latitude: 0,
+    longitude: 0
   });
 
   const [hoveredStar, setHoveredStar] = useState(0);
+  const [selectedLocation, setSelectedLocation] = useState<[number, number] | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +58,31 @@ export const AddPlaceForm: React.FC<AddPlaceFormProps> = ({
       comments: 0,
       isLiked: false
     });
+  };
+
+  const handleLocationSelect = async (lat: number, lng: number) => {
+    setSelectedLocation([lat, lng]);
+    setFormData(prev => ({ 
+      ...prev, 
+      latitude: lat, 
+      longitude: lng 
+    }));
+
+    // Géocodage inverse pour obtenir l'adresse
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+      );
+      const data = await response.json();
+      if (data && data.display_name) {
+        setFormData(prev => ({ 
+          ...prev, 
+          location: data.display_name 
+        }));
+      }
+    } catch (error) {
+      console.error('Erreur géocodage:', error);
+    }
   };
 
   const handleStarClick = (rating: number) => {
@@ -194,19 +224,37 @@ export const AddPlaceForm: React.FC<AddPlaceFormProps> = ({
             />
           </div>
 
-          {/* URL d'image */}
+          {/* Carte interactive */}
           <div className="space-y-2">
-            <Label htmlFor="image" className="flex items-center gap-2 font-semibold">
-              <Camera className="w-4 h-4" />
-              Photo (URL)
+            <Label className="flex items-center gap-2 font-semibold">
+              <MapPin className="w-4 h-4" />
+              Localisation sur la carte
             </Label>
-            <Input
-              id="image"
-              type="url"
-              value={formData.image}
-              onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
-              placeholder="https://exemple.com/photo.jpg"
-              className="input-modern"
+            <div className="h-64 border rounded-lg overflow-hidden">
+              <InteractiveMap
+                center={[48.8566, 2.3522]}
+                zoom={13}
+                onLocationSelect={handleLocationSelect}
+                selectedLocation={selectedLocation}
+                showLocationSelector={true}
+                className="h-full"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Cliquez sur la carte pour sélectionner l'emplacement exact ou utilisez le bouton "Me localiser"
+            </p>
+          </div>
+
+          {/* Upload de photo */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 font-semibold">
+              <Type className="w-4 h-4" />
+              Photo du lieu
+            </Label>
+            <PhotoUpload
+              onPhotoUploaded={(url) => setFormData(prev => ({ ...prev, image: url }))}
+              onPhotoRemoved={() => setFormData(prev => ({ ...prev, image: '' }))}
+              currentPhoto={formData.image}
             />
           </div>
 
@@ -215,7 +263,7 @@ export const AddPlaceForm: React.FC<AddPlaceFormProps> = ({
             <Button
               type="submit"
               className="btn-instagram flex-1"
-              disabled={!formData.name || !formData.type || !formData.location || !formData.description || formData.rating === 0}
+              disabled={!formData.name || !formData.type || !formData.location || !formData.description || formData.rating === 0 || !selectedLocation}
             >
               ✨ Partager ce lieu
             </Button>
