@@ -3,7 +3,7 @@ import { Camera, Upload, X, ImageIcon } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 
 interface PhotoUploadProps {
   onPhotoUploaded: (url: string) => void;
