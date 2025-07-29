@@ -36,7 +36,7 @@ export const AddPlaceForm: React.FC<AddPlaceFormProps> = ({
     type: '',
     location: '',
     description: '',
-    rating: 0,
+    rating: 1, // Changé de 0 à 1 pour respecter la contrainte
     tags: '',
     image: '',
     latitude: 0,
@@ -70,8 +70,8 @@ export const AddPlaceForm: React.FC<AddPlaceFormProps> = ({
       return;
     }
     
-    if (formData.rating === 0) {
-      alert('Veuillez attribuer une note au lieu');
+    if (formData.rating < 1 || formData.rating > 5) {
+      alert('Veuillez attribuer une note entre 1 et 5 étoiles');
       return;
     }
     
@@ -299,7 +299,7 @@ export const AddPlaceForm: React.FC<AddPlaceFormProps> = ({
             <Button
               type="submit"
               className="btn-instagram flex-1"
-              disabled={!formData.name || !formData.type || !formData.location || !formData.description || formData.rating === 0 || !selectedLocation}
+              disabled={!formData.name || !formData.type || !formData.location || !formData.description || formData.rating < 1 || !selectedLocation}
             >
               ✨ Partager ce lieu
             </Button>

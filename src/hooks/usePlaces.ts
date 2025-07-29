@@ -42,6 +42,7 @@ export const usePlaces = (userId?: string) => {
 
   const fetchPlaces = async () => {
     try {
+      console.log('Fetching places...');
       const { data, error } = await supabase
         .from('places')
         .select(`
@@ -51,7 +52,12 @@ export const usePlaces = (userId?: string) => {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur lors du fetch places:', error);
+        throw error;
+      }
+
+      console.log('Places récupérées:', data);
 
       const formattedPlaces: Place[] = (data || []).map((place: any) => ({
         id: place.id,
@@ -68,6 +74,7 @@ export const usePlaces = (userId?: string) => {
         isLiked: userId ? place.place_likes?.some(like => like.user_id === userId) : false
       }));
 
+      console.log('Places formatées:', formattedPlaces);
       setPlaces(formattedPlaces);
     } catch (error: any) {
       console.error('Error fetching places:', error);
