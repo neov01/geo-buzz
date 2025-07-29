@@ -21,7 +21,11 @@ const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, isAuthenticated, signOut, loading: authLoading } = useAuth();
-  const { places, loading: placesLoading, addPlace, toggleLike, reportPlace } = usePlaces(user?.id);
+  const { places, loading: placesLoading, addPlace, toggleLike, reportPlace, refetch } = usePlaces(user?.id);
+
+  console.log('Places from hook:', places);
+  console.log('User from auth:', user);
+  console.log('Loading state:', placesLoading);
 
   // Filtrage et recherche
   const filteredPlaces = useMemo(() => {
@@ -236,6 +240,25 @@ const Index = () => {
             <Sparkles className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
             <p className="text-muted-foreground">Chargement des lieux...</p>
           </div>
+        ) : filteredPlaces.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="animate-float">
+              <Sparkles className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
+            </div>
+            <h3 className="text-xl font-semibold text-muted-foreground mb-2">
+              {searchQuery || filterType !== 'tous' ? 'Aucun lieu trouvé' : 'Aucun lieu découvert'}
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              {searchQuery || filterType !== 'tous' 
+                ? "Essayez de modifier vos critères de recherche"
+                : "Soyez le premier à partager un lieu incroyable !"
+              }
+            </p>
+            <Button onClick={() => setShowAddForm(true)} className="btn-instagram">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Ajouter le premier lieu
+            </Button>
+          </div>
         ) : viewMode === 'map' ? (
           <MapView 
             places={filteredPlaces}
@@ -258,28 +281,6 @@ const Index = () => {
                 />
               </div>
             ))}
-          </div>
-        )}
-
-        {/* Message si aucun résultat */}
-        {filteredPlaces.length === 0 && (
-          <div className="text-center py-16">
-            <div className="animate-float">
-              <Sparkles className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
-            </div>
-            <h3 className="text-xl font-semibold text-muted-foreground mb-2">
-              Aucun lieu trouvé
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              {searchQuery || filterType !== 'tous' 
-                ? "Essayez de modifier vos critères de recherche"
-                : "Soyez le premier à partager un lieu incroyable !"
-              }
-            </p>
-            <Button onClick={() => setShowAddForm(true)} className="btn-instagram">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Ajouter le premier lieu
-            </Button>
           </div>
         )}
       </section>
