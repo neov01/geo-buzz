@@ -48,16 +48,52 @@ export const AddPlaceForm: React.FC<AddPlaceFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation des champs requis
+    if (!formData.name.trim()) {
+      alert('Le nom du lieu est requis');
+      return;
+    }
+    
+    if (!formData.type) {
+      alert('Le type de lieu est requis');
+      return;
+    }
+    
+    if (!formData.location.trim()) {
+      alert('L\'adresse est requise. Veuillez sélectionner un lieu sur la carte.');
+      return;
+    }
+    
+    if (!formData.description.trim()) {
+      alert('La description est requise');
+      return;
+    }
+    
+    if (formData.rating === 0) {
+      alert('Veuillez attribuer une note au lieu');
+      return;
+    }
+    
+    if (!selectedLocation) {
+      alert('Veuillez sélectionner un lieu sur la carte');
+      return;
+    }
+    
     const tagsArray = formData.tags.split(',').map(tag => tag.trim()).filter(Boolean);
-    onSubmit?.({
-      ...formData,
+    
+    const placeData = {
+      name: formData.name.trim(),
+      type: formData.type,
+      location: formData.location.trim(),
+      description: formData.description.trim(),
+      rating: formData.rating,
       tags: tagsArray,
-      id: Date.now().toString(),
-      author: 'Vous',
-      likes: 0,
-      comments: 0,
-      isLiked: false
-    });
+      image: formData.image || '/placeholder.svg'
+    };
+    
+    console.log('Données du lieu à ajouter:', placeData);
+    onSubmit?.(placeData);
   };
 
   const handleLocationSelect = async (lat: number, lng: number) => {

@@ -90,6 +90,9 @@ export const usePlaces = (userId?: string) => {
     tags: string[];
     image: string;
   }) => {
+    console.log('addPlace appelé avec userId:', userId);
+    console.log('addPlace appelé avec données:', placeData);
+    
     if (!userId) {
       toast({
         title: "Erreur",
@@ -99,19 +102,44 @@ export const usePlaces = (userId?: string) => {
       return false;
     }
 
+    // Validation des données
+    if (!placeData.name || !placeData.type || !placeData.location || !placeData.description) {
+      toast({
+        title: "Erreur",
+        description: "Tous les champs obligatoires doivent être remplis",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (placeData.rating < 1 || placeData.rating > 5) {
+      toast({
+        title: "Erreur",
+        description: "La note doit être entre 1 et 5",
+        variant: "destructive"
+      });
+      return false;
+    }
+
     try {
-      const { error } = await supabase.from('places').insert({
+      console.log('Tentative d\'insertion en base de données...');
+      const { data, error } = await supabase.from('places').insert({
         name: placeData.name,
         type: placeData.type,
         location: placeData.location,
         description: placeData.description,
         rating: placeData.rating,
         tags: placeData.tags,
-        image_url: placeData.image,
+        image_url: placeData.image || null,
         user_id: userId
-      });
+      }).select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur Supabase:', error);
+        throw error;
+      }
+
+      console.log('Lieu ajouté avec succès:', data);
 
       toast({
         title: "Lieu ajouté !",
@@ -122,9 +150,17 @@ export const usePlaces = (userId?: string) => {
       return true;
     } catch (error: any) {
       console.error('Error adding place:', error);
+      let errorMessage = "Impossible d'ajouter le lieu";
+      
+      if (error.code === 'PGRST116') {
+        errorMessage = "Erreur de validation des données";
+      } else if (error.message) {
+        errorMessage = `Erreur: ${error.message}`;
+      }
+      
       toast({
         title: "Erreur",
-        description: "Impossible d'ajouter le lieu",
+        description: errorMessage,
         variant: "destructive"
       });
       return false;
